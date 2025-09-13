@@ -1321,20 +1321,75 @@
       verifyApiKey.disabled = false;
       verifyApiKey.textContent = 'Verify Key';
     }
-  });
-
-  clearApiKey.addEventListener('click', () => {
-    settingsApiKey.value = '';
-    saveApiKey('');
-    apiKeyStatus.classList.add('hidden');
+  } catch (error) {
+    apiKeyStatusContent.textContent = 'Invalid';
+    apiKeyStatus.className = 'text-red-600 text-sm';
+    apiKeyStatus.classList.remove('hidden');
+    apiKeyStatusContent.className = 'p-3 rounded text-sm bg-red-50 text-red-800';
+    apiKeyStatusContent.textContent = '✗ Verification failed: ' + error.message;
     
-    // Update save button state
-    const url = input.value;
-    saveBtn.disabled = !isValidTweetUrl(url) || true; // No API key now
-    
-    showToast('API key cleared', 'info');
-  });
+    showToast('Verification failed: ' + error.message, 'error');
+    verifyApiKey.disabled = false;
+    verifyApiKey.textContent = 'Verify Key';
+  }
+});
 
+testSync.addEventListener('click', async () => {
+  const apiKey = settingsApiKey.value.trim() || localStorage.getItem(API_KEY_STORAGE);
+  
+  if (!apiKey) {
+    syncStatusContent.textContent = '❌ No API key found. Please enter and verify your API key first.';
+    syncStatus.className = 'mt-4';
+    syncStatusContent.className = 'p-3 rounded text-sm bg-red-50 text-red-800';
+    syncStatus.classList.remove('hidden');
+    return;
+  }
+
+  testSync.disabled = true;
+  testSync.textContent = 'Testing...';
+  
+  syncStatusContent.textContent = '🔄 Testing cloud sync... Check console for detailed logs.';
+  syncStatus.className = 'mt-4';
+  syncStatusContent.className = 'p-3 rounded text-sm bg-blue-50 text-blue-800';
+  syncStatus.classList.remove('hidden');
+  
+  try {
+    console.log('🧪 SYNC TEST STARTED 🧪');
+    console.log('API Key (first 10 chars):', apiKey.substring(0, 10) + '...');
+    
+    await syncLinksWithCloud(apiKey);
+    
+    const currentLinks = loadLinks();
+    console.log('📊 Final result - Links count:', currentLinks.length);
+    
+    syncStatusContent.textContent = `✅ Sync test completed! Found ${currentLinks.length} links. Check console for details.`;
+    syncStatusContent.className = 'p-3 rounded text-sm bg-green-50 text-green-800';
+    
+  } catch (error) {
+    console.error('🚨 SYNC TEST FAILED:', error);
+    syncStatusContent.textContent = `❌ Sync test failed: ${error.message}`;
+    syncStatusContent.className = 'p-3 rounded text-sm bg-red-50 text-red-800';
+  } finally {
+    testSync.disabled = false;
+    testSync.textContent = 'Test Sync';
+  }
+});
+
+clearApiKey.addEventListener('click', () => {
+  localStorage.removeItem(API_KEY_STORAGE);
+  settingsApiKey.value = '';
+  apiKeyStatus.classList.add('hidden');
+  syncStatus.classList.add('hidden');
+  showToast('API key cleared', 'success');
+});
+
+// Modal handlers
+closeModal.addEventListener('click', () => {
+  tweetModal.classList.add('hidden');
+});
+
+tweetModal.addEventListener('click', (e) => {
+  if (e.target === tweetModal) {
   // Modal handlers
   closeModal.addEventListener('click', () => {
     tweetModal.classList.add('hidden');
