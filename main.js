@@ -544,44 +544,30 @@
 
   async function verifyApiKeyFunction(apiKey) {
     try {
-      // Use the account info endpoint to verify the API key
-      const response = await fetch(`${API_BASE_URL}/oapi/my/info`, {
+      // Use TwitterAPI.io endpoint to verify the TwitterAPI.io key
+      const response = await fetch(`${API_BASE_URL}/twitter/tweets?tweet_ids=1234567890123456789`, {
         headers: {
-          'X-Master-Key': '$2a$10$5on.HVf8etgJRAH3Z5kAvONjpXPhz.yXmixJBPGkjBLkgo90dnOKy',
+          'X-API-Key': apiKey,
           'Content-Type': 'application/json'
         }
       });
 
       if (response.status === 401 || response.status === 403) {
-        return { valid: false, message: 'Invalid API key' };
+        return { valid: false, message: 'Invalid TwitterAPI.io API key' };
       }
       
-      if (response.status === 200) {
-        const data = await response.json();
-        console.log('API Response:', data); // Debug log
-        
-        // Check multiple possible credit field names
-        let credits = 'Unknown';
-        if (data.recharge_credits !== undefined && data.recharge_credits !== null) {
-          credits = data.recharge_credits.toLocaleString();
-        } else if (data.credits !== undefined && data.credits !== null) {
-          credits = data.credits.toLocaleString();
-        } else if (data.balance !== undefined && data.balance !== null) {
-          credits = data.balance.toLocaleString();
-        } else if (data.available_credits !== undefined && data.available_credits !== null) {
-          credits = data.available_credits.toLocaleString();
-        }
-        
-        return { valid: true, message: `API key is valid (Credits: ${credits})` };
+      if (response.status === 200 || response.status === 400) {
+        // 200 = valid key with data, 400 = valid key but invalid tweet ID (which is expected)
+        return { 
+          valid: true, 
+          accountType: 'TwitterAPI.io'
+        };
       }
       
-      // For other status codes, check if it's a valid response
-      if (response.status >= 400) {
-        return { valid: false, message: `API Error: ${response.status} ${response.statusText}` };
-      }
-      
-      return { valid: true, message: 'API key appears to be valid' };
+      return { valid: false, message: `Unexpected response: ${response.status}` };
     } catch (error) {
+      console.error('API verification error:', error);
+      return { valid: false, message: error.message };
       // Network errors or other issues
       return { valid: false, message: `Verification failed: ${error.message}` };
     }
