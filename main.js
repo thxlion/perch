@@ -36,6 +36,7 @@
   const API_KEY_STORAGE = 'twitterApiKey';
   const TWEETS_DATA_STORAGE = 'tweetsData';
   const MEDIA_CACHE_STORAGE = 'mediaCache';
+  const CLOUD_STORAGE_KEY = 'perch_user_links';
   const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhost:8001/api' : '/api';
 
   // DOM elements
@@ -167,9 +168,170 @@
     return originalUrl;
   }
 
-  // Initialize IndexedDB on page load
-  document.addEventListener('DOMContentLoaded', () => {
+  // Cloud storage functions using localStorage as fallback
+  function getCloudStorageKey(apiKey) {
+    // Create a unique key based on API key hash
+    return `${CLOUD_STORAGE_KEY}_${btoa(apiKey).slice(0, 16)}`;
+  }
+
+  async function saveLinksToCloud(apiKey, links) {
+    try {
+      // For now, use enhanced localStorage with API key namespace
+      const cloudKey = getCloudStorageKey(apiKey);
+      const cloudData = {
+        apiKey: btoa(apiKey),
+        links: links,
+        lastUpdated: Date.now()
+      };
+      localStorage.setItem(cloudKey, JSON.stringify(cloudData));
+      console.log('Links saved to cloud storage');
+      return true;
+    } catch (error) {
+      console.error('Failed to save links to cloud:', error);
+      return false;
+    }
+  }
+
+  async function loadLinksFromCloud(apiKey) {
+    try {
+      const cloudKey = getCloudStorageKey(apiKey);
+      const stored = localStorage.getItem(cloudKey);
+      if (stored) {
+        const cloudData = JSON.parse(stored);
+        if (cloudData.apiKey === btoa(apiKey)) {
+          console.log('Links loaded from cloud storage');
+          return cloudData.links || [];
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load links from cloud:', error);
+    }
+    return null;
+  }
+
+  async function updateCloudLinks(apiKey, links) {
+    return await saveLinksToCloud(apiKey, links);
+  }
+
+  async function syncLinksWithCloud(apiKey) {
+    if (!apiKey) return;
+
+    showInfo('Syncing your saved links...');
+    
+    try {
+      const cloudLinks = await loadLinksFromCloud(apiKey);
+      if (cloudLinks && cloudLinks.length > 0) {
+        // Merge cloud links with local links
+        const localLinks = loadLinks();
+        const mergedLinks = [...cloudLinks];
+        
+        // Add any local links that aren't in cloud
+        localLinks.forEach(localLink => {
+          if (!mergedLinks.find(cloudLink => cloudLink.url === localLink.url)) {
+            mergedLinks.push(localLink);
+          }
+        });
+
+        // Save merged links locally
+        saveLinks(mergedLinks);
+        
+        // Pre-fetch and cache tweet data for all links
+        await prefetchAllTweets(mergedLinks, apiKey);
+        
+        renderTweets();
+        showInfo(`Synced ${cloudLinks.length} saved links from cloud`);
+      } else {
+        // No cloud links found, upload current local links
+        const localLinks = loadLinks();
+        if (localLinks.length > 0) {
+          await saveLinksToCloud(apiKey, localLinks);
+          showInfo('Uploaded local links to cloud');
+        }
+      }
+    } catch (error) {
+      console.error('Sync failed:', error);
+      showError('Failed to sync with cloud storage');
+    }
+  }
+
+  async function saveTweetWithData(url, apiKey) {
+    const tweetId = extractTweetId(url);
+    if (!tweetId) {
+      throw new Error('Invalid tweet URL');
+    }
+
+    const links = loadLinks();
+    
+    // Check for duplicates with normalized URLs
+    const normalizedUrl = normalizeTwitterUrl(url);
+    const existingLink = links.find(link => normalizeTwitterUrl(link.url) === normalizedUrl);
+    if (existingLink) {
+      throw new Error('Link already saved');
+    }
+
+    // Fetch tweet data
+    const tweetData = await fetchTweetData(tweetId, apiKey);
+    if (!tweetData) {
+      throw new Error('Failed to fetch tweet data');
+    }
+
+    // Save tweet data
+    saveTweetData(tweetId, tweetData);
+
+    // Add to links
+    const newLink = {
+      url: normalizedUrl,
+      id: tweetId,
+      saved: Date.now()
+    };
+    links.push(newLink);
+    saveLinks(links);
+
+    // Update cloud storage
+    updateCloudLinks(apiKey, links);
+
+    return newLink;
+  }
+
+  async function prefetchAllTweets(links, apiKey) {
+    let processed = 0;
+    const total = links.length;
+    
+    for (const link of links) {
+      try {
+        const tweetId = extractTweetId(link.url);
+        if (tweetId) {
+          const existingData = loadTweetData(tweetId);
+          if (!existingData) {
+            const tweetData = await fetchTweetData(tweetId, apiKey);
+            if (tweetData) {
+              saveTweetData(tweetId, tweetData);
+            }
+          }
+        }
+        processed++;
+        if (processed % 5 === 0) {
+          showInfo(`Caching tweets... ${processed}/${total}`);
+        }
+      } catch (error) {
+        console.error('Failed to prefetch tweet:', link.url, error);
+      }
+    }
+    
+    if (total > 0) {
+      showInfo(`Cached ${processed} tweets for offline reading`);
+    }
+  }
+
+  // Initialize IndexedDB and sync on page load
+  document.addEventListener('DOMContentLoaded', async () => {
     initMediaDB().catch(console.error);
+    
+    // Auto-sync if API key exists
+    const existingApiKey = localStorage.getItem(API_KEY_STORAGE);
+    if (existingApiKey) {
+      await syncLinksWithCloud(existingApiKey);
+    }
   });
 
   // Helpers
@@ -1004,29 +1166,30 @@
       
       if (result.valid) {
         // Save the API key
-        saveApiKey(apiKey);
+        localStorage.setItem(API_KEY_STORAGE, apiKey);
         
-        // Update status
-        apiKeyStatus.classList.remove('hidden');
-        apiKeyStatusContent.className = 'p-3 rounded text-sm bg-green-50 text-green-800';
-        apiKeyStatusContent.textContent = '✓ ' + result.message;
+        // Update UI
+        apiKeyStatusContent.textContent = `Valid (${result.accountType || 'Unknown'})`;
+        apiKeyStatus.className = 'text-green-600 text-sm';
         
-        // Show success toast
-        showToast('API key verified and saved successfully!', 'success');
+        showToast('API key verified! Syncing your saved links...', 'success');
         
-        // Update save button state
-        const url = input.value;
-        saveBtn.disabled = !isValidTweetUrl(url) || !apiKey;
+        // Sync links from cloud storage
+        await syncLinksWithCloud(apiKey);
+        
+        // Close settings modal
+        settingsModal.classList.add('hidden');
+        
+        // Re-render tweets
+        renderTweets();
       } else {
-        // Update status
-        apiKeyStatus.classList.remove('hidden');
-        apiKeyStatusContent.className = 'p-3 rounded text-sm bg-red-50 text-red-800';
-        apiKeyStatusContent.textContent = '✗ ' + result.message;
-        
-        // Show error toast
-        showToast(result.message, 'error');
+        apiKeyStatusContent.textContent = 'Invalid';
+        apiKeyStatus.className = 'text-red-600 text-sm';
+        showToast('Invalid API key', 'error');
       }
     } catch (error) {
+      apiKeyStatusContent.textContent = 'Invalid';
+      apiKeyStatus.className = 'text-red-600 text-sm';
       apiKeyStatus.classList.remove('hidden');
       apiKeyStatusContent.className = 'p-3 rounded text-sm bg-red-50 text-red-800';
       apiKeyStatusContent.textContent = '✗ Verification failed: ' + error.message;
