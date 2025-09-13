@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tweet Link Saver</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-start justify-center pt-12">
+  <div class="w-full max-w-2xl bg-white shadow-md rounded-lg p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-2xl font-semibold text-center flex-grow">Tweet Link Saver</h1>
+      <button id="settings-btn" class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors" aria-label="Settings">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Input & Save button -->
+    <form id="tweet-form" class="flex gap-2">
+      <input
+        type="url"
+        id="tweet-input"
+        required
+        placeholder="Paste a tweet link (x.com/twitter.com)"
+        class="flex-grow px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      <button
+        type="submit"
+        id="save-btn"
+        class="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-40 disabled:cursor-not-allowed"
+      >Save</button>
+    </form>
+
+    <!-- Error / Info messages -->
+    <p id="error-msg" class="text-sm text-red-600 mt-2 hidden"></p>
+    <p id="info-msg" class="text-sm text-yellow-600 mt-2 hidden"></p>
+
+    <!-- Saved tweets list -->
+    <div id="tweets-container" class="mt-6">
+      <div id="tweets-list" class="space-y-4"></div>
+      <p id="empty-msg" class="text-gray-500 text-center mt-6">Your saved tweets will appear here.</p>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg max-w-md w-full">
+        <div class="p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h2 class="text-xl font-semibold">Settings</h2>
+            <button id="close-settings" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+          </div>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">TwitterAPI.io API Key</label>
+              <div class="relative">
+                <input
+                  type="password"
+                  id="settings-api-key"
+                  placeholder="Enter your API key"
+                  class="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 pr-20"
+                />
+                <button id="toggle-settings-key" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-blue-600 hover:underline">
+                  Show
+                </button>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">
+                Get your API key from <a href="https://twitterapi.io" target="_blank" class="text-blue-600 hover:underline">twitterapi.io</a>
+              </p>
+            </div>
+            
+            <div class="flex space-x-3">
+              <button id="verify-api-key" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                Verify Key
+              </button>
+              <button id="clear-api-key" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                Clear
+              </button>
+            </div>
+            
+            <div id="api-key-status" class="hidden">
+              <div id="api-key-status-content" class="p-3 rounded text-sm"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tweet Detail Modal -->
+    <div id="tweet-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h2 class="text-xl font-semibold">Tweet Details</h2>
+            <button id="close-modal" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+          </div>
+          <div id="modal-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+  </div>
+
+  <!-- Main JS -->
+  <script src="main.js"></script>
+</body>
+</html>
