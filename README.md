@@ -1,16 +1,32 @@
-# Tweet Link Saver
+# Perch 🐦
 
-A minimal single-page application to store tweet links locally in your browser.
+A powerful offline tweet reading app with unlimited media caching.
 
 ## Features
 
-- Paste a valid tweet URL (from `twitter.com` or `x.com`) and save it.
-- Links are persisted in `localStorage`, so they remain after page refresh.
-- Prevents duplicate links and notifies you if a link is already saved.
-- Delete individual links with full keyboard accessibility.
-- Keyboard shortcuts:
-  - **Enter**: Save the link (when input is focused and valid).
-  - **Escape**: Clear the input.
+✅ **Offline Reading** - Save tweets for reading without internet  
+✅ **Unlimited Media Caching** - Store images and videos locally (GB scale)  
+✅ **Video Streaming** - Full video playback with caching  
+✅ **Clean Interface** - Distraction-free reading experience  
+✅ **Global Access** - Deploy once, access anywhere  
+
+## Quick Start
+
+1. Get an API key from [twitterapi.io](https://twitterapi.io)
+2. Open Perch and enter your API key in settings
+3. Paste any Twitter/X URL and save
+4. Enjoy offline reading with cached media!
+
+## Technology
+
+- **Frontend**: Vanilla JS, HTML5, Tailwind CSS
+- **Storage**: IndexedDB for unlimited media caching
+- **API**: TwitterAPI.io integration with CORS proxy
+- **Deployment**: Netlify-ready with automatic API proxying
+
+## Deployment
+
+Ready for one-click deployment to Netlify with built-in API proxying and HTTPS.
 - Clean, minimal UI built with TailwindCSS.
 
 ## Getting Started
