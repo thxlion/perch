@@ -168,85 +168,142 @@
     return originalUrl;
   }
 
-  // Simple cloud storage using GitHub Gists (free and reliable)
+  // Real cloud storage functions using JSONBin.io
   function getCloudStorageKey(apiKey) {
+    // Create a unique key based on API key hash
     return `perch_${btoa(apiKey).slice(0, 16)}`;
   }
 
   async function saveLinksToCloud(apiKey, links) {
     try {
-      // Use GitHub Gists as free cloud storage
-      const gistData = {
-        description: `Perch saved links for ${getCloudStorageKey(apiKey)}`,
-        public: false,
-        files: {
-          "perch-links.json": {
-            content: JSON.stringify({
-              apiKey: btoa(apiKey),
-              links: links,
-              lastUpdated: Date.now()
-            }, null, 2)
-          }
-        }
-      };
+      console.log('Attempting to save links to JSONBin.io...');
+      // Try JSONBin.io first (real cloud storage)
+      const response = await fetch('https://api.jsonbin.io/v3/b', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': '$2a$10$5on.HVf8etgJRAH3Z5kAvONjpXPhz.yXmixJBPGkjBLkgo90dnOKy',
+          'X-Bin-Name': getCloudStorageKey(apiKey)
+        },
+        body: JSON.stringify({
+          apiKey: btoa(apiKey),
+          links: links,
+          lastUpdated: Date.now()
+        })
+      });
 
-      // For now, use localStorage with better cross-browser support
+      if (response.ok) {
+        const result = await response.json();
+        localStorage.setItem(`${CLOUD_STORAGE_KEY}_binId`, result.metadata.id);
+        console.log('✅ Links saved to JSONBin cloud storage:', result.metadata.id);
+        return true;
+      } else {
+        const errorText = await response.text();
+        console.error('❌ JSONBin API Error:', response.status, response.statusText, errorText);
+        throw new Error(`JSONBin error: ${response.status} - ${errorText}`);
+      }
+    } catch (error) {
+      console.error('❌ JSONBin failed:', error.message);
+      console.warn('🔄 Using localStorage fallback...');
+      // Fallback to localStorage
       const cloudKey = getCloudStorageKey(apiKey);
       const cloudData = {
         apiKey: btoa(apiKey),
         links: links,
         lastUpdated: Date.now()
       };
-      
-      // Store in multiple localStorage keys for better cross-browser sync
       localStorage.setItem(cloudKey, JSON.stringify(cloudData));
-      localStorage.setItem(`${cloudKey}_backup`, JSON.stringify(cloudData));
-      
-      // Also try sessionStorage as additional fallback
-      try {
-        sessionStorage.setItem(cloudKey, JSON.stringify(cloudData));
-      } catch (e) {
-        // Ignore sessionStorage errors
-      }
-      
-      console.log('Links saved to enhanced local storage');
+      console.log('✅ Links saved to localStorage fallback');
       return true;
-    } catch (error) {
-      console.error('Failed to save links:', error);
-      return false;
     }
   }
 
   async function loadLinksFromCloud(apiKey) {
     try {
-      const cloudKey = getCloudStorageKey(apiKey);
-      
-      // Try multiple storage locations
-      let stored = localStorage.getItem(cloudKey) || 
-                   localStorage.getItem(`${cloudKey}_backup`);
-      
-      if (!stored) {
-        try {
-          stored = sessionStorage.getItem(cloudKey);
-        } catch (e) {
-          // Ignore sessionStorage errors
+      console.log('Attempting to load links from JSONBin.io...');
+      // Try JSONBin.io first
+      const binId = localStorage.getItem(`${CLOUD_STORAGE_KEY}_binId`);
+      if (binId) {
+        console.log('Found bin ID:', binId);
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+          headers: {
+            'X-Master-Key': '$2a$10$5on.HVf8etgJRAH3Z5kAvONjpXPhz.yXmixJBPGkjBLkgo90dnOKy'
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('JSONBin response:', result);
+          if (result.record && result.record.apiKey === btoa(apiKey)) {
+            console.log('✅ Links loaded from JSONBin cloud storage');
+            return result.record.links || [];
+          } else {
+            console.log('❌ API key mismatch or no record found');
+          }
+        } else {
+          const errorText = await response.text();
+          console.error('❌ JSONBin load error:', response.status, errorText);
         }
+      } else {
+        console.log('No bin ID found, checking localStorage...');
       }
-      
+    } catch (error) {
+      console.error('❌ JSONBin failed:', error.message);
+      console.warn('🔄 Trying localStorage fallback...');
+    }
+
+    // Fallback to localStorage
+    try {
+      const cloudKey = getCloudStorageKey(apiKey);
+      const stored = localStorage.getItem(cloudKey);
       if (stored) {
         const cloudData = JSON.parse(stored);
         if (cloudData.apiKey === btoa(apiKey)) {
-          console.log('Links loaded from enhanced local storage');
+          console.log('✅ Links loaded from localStorage fallback');
           return cloudData.links || [];
         }
       }
     } catch (error) {
-      console.error('Failed to load links from storage:', error);
+      console.error('❌ Failed to load links from storage:', error);
     }
     return null;
   }
 
   async function updateCloudLinks(apiKey, links) {
+    const binId = localStorage.getItem(`${CLOUD_STORAGE_KEY}_binId`);
+    if (!binId) {
+      return await saveLinksToCloud(apiKey, links);
+    }
+
+    try {
+      console.log('Updating JSONBin with bin ID:', binId);
+      const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': '$2a$10$5on.HVf8etgJRAH3Z5kAvONjpXPhz.yXmixJBPGkjBLkgo90dnOKy'
+        },
+        body: JSON.stringify({
+          apiKey: btoa(apiKey),
+          links: links,
+          lastUpdated: Date.now()
+        })
+      });
+
+      if (response.ok) {
+        console.log('✅ Links updated in JSONBin cloud storage');
+        return true;
+      } else {
+        const errorText = await response.text();
+        console.error('❌ JSONBin update error:', response.status, errorText);
+        throw new Error(`Update failed: ${response.status} - ${errorText}`);
+      }
+    } catch (error) {
+      console.error('❌ JSONBin update failed:', error.message);
+      console.warn('🔄 Using localStorage fallback...');
+    }
+
+    // Fallback to localStorage
     return await saveLinksToCloud(apiKey, links);
   }
 
@@ -286,8 +343,9 @@
         }
       }
     } catch (error) {
-      console.error('Sync failed:', error);
-      showToast('Failed to sync with cloud storage', 'error');
+      console.error('❌ Sync failed:', error);
+      console.error('Error details:', error.message, error.stack);
+      showToast('Failed to sync with cloud storage: ' + error.message, 'error');
     }
   }
 
