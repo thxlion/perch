@@ -1383,6 +1383,17 @@ clearApiKey.addEventListener('click', () => {
   showToast('API key cleared', 'success');
 });
 
+// Escape key to close modals
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (!tweetModal.classList.contains('hidden')) {
+      tweetModal.classList.add('hidden');
+    } else if (!settingsModal.classList.contains('hidden')) {
+      settingsModal.classList.add('hidden');
+    }
+  }
+});
+
 // Modal handlers
 closeModal.addEventListener('click', () => {
   tweetModal.classList.add('hidden');
@@ -1390,27 +1401,13 @@ closeModal.addEventListener('click', () => {
 
 tweetModal.addEventListener('click', (e) => {
   if (e.target === tweetModal) {
-  // Modal handlers
-  closeModal.addEventListener('click', () => {
     tweetModal.classList.add('hidden');
-  });
+  }
+});
 
-  tweetModal.addEventListener('click', (e) => {
-    if (e.target === tweetModal) {
-      tweetModal.classList.add('hidden');
-    }
-  });
-
-  // Escape key to close modals
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      if (!tweetModal.classList.contains('hidden')) {
-        tweetModal.classList.add('hidden');
-      } else if (!settingsModal.classList.contains('hidden')) {
-        settingsModal.classList.add('hidden');
-      }
-    }
-  });
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const url = input.value.trim();
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
