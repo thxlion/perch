@@ -1168,11 +1168,6 @@
   async function saveTweetWithData(url) {
     const links = loadLinks();
     
-    // Normalize URL for comparison (handle x.com vs twitter.com)
-    const normalizeUrl = (u) => {
-      return u.replace('://x.com/', '://twitter.com/').replace('://www.x.com/', '://twitter.com/').replace('://www.twitter.com/', '://twitter.com/');
-    };
-    
     const normalizedUrl = normalizeUrl(url);
     const existingNormalizedUrls = links.map(normalizeUrl);
     
