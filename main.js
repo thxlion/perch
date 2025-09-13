@@ -58,7 +58,6 @@
   const settingsApiKey = document.getElementById('settings-api-key');
   const toggleSettingsKey = document.getElementById('toggle-settings-key');
   const verifyApiKey = document.getElementById('verify-api-key');
-  const testSync = document.getElementById('test-sync');
   const clearApiKey = document.getElementById('clear-api-key');
   const apiKeyStatus = document.getElementById('api-key-status');
   const apiKeyStatusContent = document.getElementById('api-key-status-content');
@@ -456,15 +455,10 @@
     }
   }
 
-  // Initialize IndexedDB and sync on page load
+  // Initialize IndexedDB on page load
   document.addEventListener('DOMContentLoaded', async () => {
     initMediaDB().catch(console.error);
-    
-    // Auto-sync if API key exists
-    const existingApiKey = localStorage.getItem(API_KEY_STORAGE);
-    if (existingApiKey) {
-      await syncLinksWithCloud(existingApiKey);
-    }
+    renderTweets(loadLinks());
   });
 
   // Helpers
@@ -1289,10 +1283,7 @@
         apiKeyStatusContent.textContent = `Valid (${result.accountType || 'Unknown'})`;
         apiKeyStatus.className = 'text-green-600 text-sm';
         
-        showToast('API key verified! Syncing your saved links...', 'success');
-        
-        // Sync links from cloud storage
-        await syncLinksWithCloud(apiKey);
+        showToast('API key verified!', 'success');
         
         // Close settings modal
         settingsModal.classList.add('hidden');
