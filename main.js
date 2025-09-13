@@ -143,6 +143,12 @@
       const blob = await response.blob();
       console.log('Downloaded media:', mediaId, `(${(blob.size / 1024 / 1024).toFixed(2)} MB)`);
       
+      // Check if blob is empty (0 bytes)
+      if (blob.size === 0) {
+        console.error('❌ Downloaded blob is empty (0 bytes):', mediaId, url);
+        throw new Error('Empty blob downloaded');
+      }
+      
       // Save to IndexedDB (no size limits)
       await saveMediaToDB(mediaId, url, blob);
       console.log('Media cached in IndexedDB:', mediaId);
@@ -162,6 +168,19 @@
       const cached = await loadMediaFromDB(mediaId);
       if (cached) {
         console.log('Using cached media from IndexedDB:', mediaId);
+        
+        // Check if cached blob is empty
+        if (cached.blob.size === 0) {
+          console.error('❌ Cached blob is empty, removing from cache:', mediaId);
+          // Remove empty blob from cache
+          if (mediaDB) {
+            const transaction = mediaDB.transaction(['media'], 'readwrite');
+            const store = transaction.objectStore('media');
+            store.delete(mediaId);
+          }
+          return originalUrl; // Return original URL to retry download
+        }
+        
         return URL.createObjectURL(cached.blob);
       }
     } catch (error) {
