@@ -552,12 +552,14 @@
         }
       });
 
+      console.log('API verification response:', response.status, response.statusText);
+      
       if (response.status === 401 || response.status === 403) {
         return { valid: false, message: 'Invalid TwitterAPI.io API key' };
       }
       
-      if (response.status === 200 || response.status === 400) {
-        // 200 = valid key with data, 400 = valid key but invalid tweet ID (which is expected)
+      // Accept any non-auth error as valid key (network issues, invalid tweet ID, etc.)
+      if (response.status !== 401 && response.status !== 403) {
         return { 
           valid: true, 
           accountType: 'TwitterAPI.io'
