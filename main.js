@@ -1409,25 +1409,21 @@ form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const url = input.value.trim();
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const url = input.value.trim();
+  if (!isValidTweetUrl(url)) {
+    showMessage(errorMsg, 'Please enter a valid tweet URL.');
+    return;
+  }
 
-    if (!isValidTweetUrl(url)) {
-      showMessage(errorMsg, 'Please enter a valid tweet URL.');
-      return;
-    }
+  const apiKey = loadApiKey();
+  if (!apiKey) {
+    showMessage(errorMsg, 'Please enter your TwitterAPI.io API key first.');
+    return;
+  }
 
-    const apiKey = loadApiKey();
-    if (!apiKey) {
-      showMessage(errorMsg, 'Please enter your TwitterAPI.io API key first.');
-      return;
-    }
+  await saveTweetWithData(url);
 
-    await saveTweetWithData(url);
-
-    input.value = '';
-    saveBtn.disabled = true;
+  input.value = '';
+  saveBtn.disabled = true;
     input.focus();
   });
 
