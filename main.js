@@ -1321,17 +1321,6 @@
       verifyApiKey.disabled = false;
       verifyApiKey.textContent = 'Verify Key';
     }
-  } catch (error) {
-    apiKeyStatusContent.textContent = 'Invalid';
-    apiKeyStatus.className = 'text-red-600 text-sm';
-    apiKeyStatus.classList.remove('hidden');
-    apiKeyStatusContent.className = 'p-3 rounded text-sm bg-red-50 text-red-800';
-    apiKeyStatusContent.textContent = '✗ Verification failed: ' + error.message;
-    
-    showToast('Verification failed: ' + error.message, 'error');
-    verifyApiKey.disabled = false;
-    verifyApiKey.textContent = 'Verify Key';
-  }
 });
 
 testSync.addEventListener('click', async () => {
@@ -1424,16 +1413,16 @@ form.addEventListener('submit', async (e) => {
 
   input.value = '';
   saveBtn.disabled = true;
-    input.focus();
-  });
+  input.focus();
+});
 
-  // On load
-  document.addEventListener('DOMContentLoaded', () => {
-    input.focus();
-    
-    // Check if we have an API key and update button state
-    const savedApiKey = loadApiKey();
-    saveBtn.disabled = true;
+// On load
+document.addEventListener('DOMContentLoaded', () => {
+  input.focus();
+  
+  // Check if we have an API key and update button state
+  const savedApiKey = loadApiKey();
+  saveBtn.disabled = true;
     
     
     renderTweets(loadLinks());
