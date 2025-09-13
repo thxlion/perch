@@ -1178,7 +1178,13 @@
     infoMsg.classList.add('hidden');
   }
 
+  // Normalize URL for comparison (handle x.com vs twitter.com)
+  const normalizeUrl = (u) => {
+    return u.replace('://x.com/', '://twitter.com/').replace('://www.x.com/', '://twitter.com/').replace('://www.twitter.com/', '://twitter.com/');
+  };
+
   async function saveTweetWithData(url) {
+    console.log('🔄 Saving tweet:', url);
     const links = loadLinks();
     
     const normalizedUrl = normalizeUrl(url);
