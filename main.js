@@ -220,32 +220,37 @@
 
   async function loadLinksFromCloud(apiKey) {
     try {
-      console.log('Attempting to load links from JSONBin.io...');
+      console.log('🔍 Attempting to load links from JSONBin.io...');
       // Try JSONBin.io first
       const binId = localStorage.getItem(`${CLOUD_STORAGE_KEY}_binId`);
+      console.log('🆔 Stored bin ID:', binId);
+      
       if (binId) {
-        console.log('Found bin ID:', binId);
+        console.log('📡 Fetching from JSONBin with ID:', binId);
         const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
           headers: {
             'X-Master-Key': '$2a$10$5on.HVf8etgJRAH3Z5kAvONjpXPhz.yXmixJBPGkjBLkgo90dnOKy'
           }
         });
 
+        console.log('📥 JSONBin response status:', response.status);
+        
         if (response.ok) {
           const result = await response.json();
-          console.log('JSONBin response:', result);
+          console.log('📄 JSONBin response data:', result);
+          
           if (result.record && result.record.apiKey === btoa(apiKey)) {
-            console.log('✅ Links loaded from JSONBin cloud storage');
+            console.log('✅ API key matches, returning links:', result.record.links);
             return result.record.links || [];
           } else {
-            console.log('❌ API key mismatch or no record found');
+            console.log('❌ API key mismatch. Expected:', btoa(apiKey), 'Got:', result.record?.apiKey);
           }
         } else {
           const errorText = await response.text();
           console.error('❌ JSONBin load error:', response.status, errorText);
         }
       } else {
-        console.log('No bin ID found, checking localStorage...');
+        console.log('🔍 No bin ID found, checking localStorage fallback...');
       }
     } catch (error) {
       console.error('❌ JSONBin failed:', error.message);
@@ -255,17 +260,28 @@
     // Fallback to localStorage
     try {
       const cloudKey = getCloudStorageKey(apiKey);
+      console.log('🔑 Checking localStorage with key:', cloudKey);
       const stored = localStorage.getItem(cloudKey);
+      console.log('💾 localStorage data:', stored);
+      
       if (stored) {
         const cloudData = JSON.parse(stored);
+        console.log('📋 Parsed cloud data:', cloudData);
+        
         if (cloudData.apiKey === btoa(apiKey)) {
-          console.log('✅ Links loaded from localStorage fallback');
+          console.log('✅ Links loaded from localStorage fallback:', cloudData.links);
           return cloudData.links || [];
+        } else {
+          console.log('❌ localStorage API key mismatch');
         }
+      } else {
+        console.log('📭 No localStorage data found');
       }
     } catch (error) {
       console.error('❌ Failed to load links from storage:', error);
     }
+    
+    console.log('🚫 No links found in any storage');
     return null;
   }
 
@@ -313,33 +329,52 @@
     showToast('Syncing your saved links...', 'info');
     
     try {
+      console.log('🔄 Starting sync process...');
       const cloudLinks = await loadLinksFromCloud(apiKey);
+      console.log('☁️ Cloud links found:', cloudLinks);
+      
       if (cloudLinks && cloudLinks.length > 0) {
+        console.log('✅ Found cloud links, merging...');
         // Merge cloud links with local links
         const localLinks = loadLinks();
+        console.log('📱 Local links:', localLinks);
+        
         const mergedLinks = [...cloudLinks];
         
         // Add any local links that aren't in cloud
         localLinks.forEach(localLink => {
-          if (!mergedLinks.find(cloudLink => cloudLink.url === localLink.url)) {
+          const exists = cloudLinks.some(cloudLink => 
+            normalizeUrl(cloudLink.url || cloudLink) === normalizeUrl(localLink.url || localLink)
+          );
+          if (!exists) {
             mergedLinks.push(localLink);
           }
         });
 
+        console.log('🔗 Merged links:', mergedLinks);
+        
         // Save merged links locally
         saveLinks(mergedLinks);
+        console.log('💾 Saved merged links locally');
         
         // Pre-fetch and cache tweet data for all links
         await prefetchAllTweets(mergedLinks, apiKey);
         
+        console.log('🎨 Rendering tweets...');
         renderTweets(loadLinks());
         showToast(`Synced ${cloudLinks.length} saved links from cloud`, 'success');
       } else {
+        console.log('❌ No cloud links found, uploading local links...');
         // No cloud links found, upload current local links
         const localLinks = loadLinks();
+        console.log('📱 Local links to upload:', localLinks);
+        
         if (localLinks.length > 0) {
           await saveLinksToCloud(apiKey, localLinks);
           showToast('Uploaded local links to cloud', 'success');
+        } else {
+          console.log('📭 No local links to upload');
+          showToast('No links to sync', 'info');
         }
       }
     } catch (error) {
