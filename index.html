@@ -74,16 +74,23 @@
             </div>
             
             <div class="flex space-x-3">
-              <button id="verify-api-key" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed">
+              <button id="verify-api-key" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50">
                 Verify Key
               </button>
-              <button id="clear-api-key" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-                Clear
+              <button id="test-sync" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:opacity-50">
+                Test Sync
+              </button>
+              <button id="clear-api-key" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                Clear Key
               </button>
             </div>
             
             <div id="api-key-status" class="hidden">
               <div id="api-key-status-content" class="p-3 rounded text-sm"></div>
+            </div>
+            
+            <div id="sync-status" class="hidden mt-4">
+              <div id="sync-status-content" class="p-3 rounded text-sm bg-gray-50 text-gray-800"></div>
             </div>
           </div>
         </div>

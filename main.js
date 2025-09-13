@@ -58,9 +58,12 @@
   const settingsApiKey = document.getElementById('settings-api-key');
   const toggleSettingsKey = document.getElementById('toggle-settings-key');
   const verifyApiKey = document.getElementById('verify-api-key');
+  const testSync = document.getElementById('test-sync');
   const clearApiKey = document.getElementById('clear-api-key');
   const apiKeyStatus = document.getElementById('api-key-status');
   const apiKeyStatusContent = document.getElementById('api-key-status-content');
+  const syncStatus = document.getElementById('sync-status');
+  const syncStatusContent = document.getElementById('sync-status-content');
   const toastContainer = document.getElementById('toast-container');
 
 
