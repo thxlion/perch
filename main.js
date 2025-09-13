@@ -332,7 +332,7 @@
         // Pre-fetch and cache tweet data for all links
         await prefetchAllTweets(mergedLinks, apiKey);
         
-        renderTweets();
+        renderTweets(loadLinks());
         showToast(`Synced ${cloudLinks.length} saved links from cloud`, 'success');
       } else {
         // No cloud links found, upload current local links
@@ -622,7 +622,8 @@
     // Clear list
     tweetsList.innerHTML = '';
 
-    if (!links.length) {
+    // Handle case where links is undefined or not an array
+    if (!links || !Array.isArray(links) || !links.length) {
       emptyMsg.classList.remove('hidden');
       return;
     }
@@ -1276,7 +1277,7 @@
         settingsModal.classList.add('hidden');
         
         // Re-render tweets
-        renderTweets();
+        renderTweets(loadLinks());
       } else {
         apiKeyStatusContent.textContent = 'Invalid';
         apiKeyStatus.className = 'text-red-600 text-sm';
